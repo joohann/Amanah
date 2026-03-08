@@ -1,0 +1,70 @@
+name: 🐛 Bug rapport
+description: Meld een probleem met de Amanah integratie
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bedankt voor het melden van een bug! Vul het formulier zo volledig mogelijk in.
+
+  - type: input
+    id: ha-version
+    attributes:
+      label: Home Assistant versie
+      placeholder: "2025.x.x"
+    validations:
+      required: true
+
+  - type: input
+    id: amanah-version
+    attributes:
+      label: Amanah versie
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: aquarium-type
+    attributes:
+      label: Aquarium type
+      options:
+        - Zoetwater
+        - Zoutwater
+    validations:
+      required: true
+
+  - type: textarea
+    id: beschrijving
+    attributes:
+      label: Beschrijving van het probleem
+      description: Wat gaat er fout? Wat verwacht je dat er zou moeten gebeuren?
+    validations:
+      required: true
+
+  - type: textarea
+    id: stappen
+    attributes:
+      label: Stappen om het probleem te reproduceren
+      placeholder: |
+        1. Ga naar ...
+        2. Klik op ...
+        3. Zie fout ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / foutmeldingen
+      description: Plak relevante logs uit Home Assistant (Instellingen → Systeem → Logboek)
+      render: text
+
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware
+      placeholder: |
+        - Board: Waveshare ESP32-S3-LCD-1.47B
+        - Sensoren: 2x DS18B20, ...
+        - MQTT broker: Mosquitto add-on

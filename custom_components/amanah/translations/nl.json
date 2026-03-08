@@ -1,0 +1,54 @@
+{
+  "title": "Amanah Aquarium Monitor",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Voorbereiding & instellingen",
+        "description": "## Amanah Aquarium Monitor v1.0.0\n\n**Sluit de hardware aan voordat je verder gaat:**\n\n**DS18B20 temperatuursensor:**\n```\nVCC  →  3.3V\nGND  →  GND\nDATA →  GPIO14  (+ 4.7kΩ weerstand naar 3.3V)\n```\n\n**ESP32 display (ideaspark 1.9\"):**\n- Zorg dat de ESP32 verbinding heeft met WiFi\n- Zorg dat ESPHome add-on geïnstalleerd is\n\n**MQTT:**\n- Zorg dat de MQTT broker actief is in Home Assistant\n  *(Instellingen → Add-ons → Mosquitto broker)*\n\n---\nVul hieronder je instellingen in:",
+        "data": {
+          "mqtt_topic": "MQTT basis-topic",
+          "mqtt_broker": "MQTT broker IP-adres",
+          "aquarium_profile": "Aquarium type"
+        }
+      },
+      "esphome": {
+        "title": "Display instellen",
+        "description": "De ESP32 YAML wordt aangemaakt in `/config/esphome/amanah-display.yaml`.\n\nSelecteer de GPIO pin van je DS18B20 sensor en kies of Amanah het display direct mag installeren via WiFi (OTA).\n\n> **Eerste keer?** Flash de ESP32 eerst via USB via ESPHome → amanah-display → *Installeer* → *USB*",
+        "data": {
+          "sensor_pin": "GPIO pin temperatuursensor (DS18B20)",
+          "install_after_create": "Direct installeren via WiFi (OTA)",
+          "skip_esphome": "Overslaan — ik stel het display zelf in"
+        },
+        "data_description": {
+          "sensor_pin": "Sluit een 4.7kΩ pull-up weerstand aan tussen de DATA-pin en 3.3V — dit is verplicht voor DS18B20",
+          "install_after_create": "Vereist dat de ESP32 al eerder via USB met ESPHome is geflasht en op WiFi bereikbaar is",
+          "skip_esphome": "Kies dit als je de ESPHome YAML liever zelf beheert"
+        }
+      }
+    },
+    "error": {
+      "esphome_create_failed": "ESPHome device aanmaken mislukt. Je kunt het display handmatig instellen via ESPHome."
+    },
+    "abort": {
+      "already_configured": "Amanah is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Drempelwaarden ({profile})",
+        "description": "Pas de grens- en alarmwaarden aan. ⚠️ = waarschuwing, 🚨 = acuut gevaar.",
+        "data": {
+          "temperature_1__orange_low": "Temp 1 ⚠️ min",
+          "temperature_1__red_low": "Temp 1 🚨 min",
+          "temperature_1__orange_high": "Temp 1 ⚠️ max",
+          "temperature_1__red_high": "Temp 1 🚨 max",
+          "temperature_2__orange_low": "Temp 2 ⚠️ min",
+          "temperature_2__red_low": "Temp 2 🚨 min",
+          "temperature_2__orange_high": "Temp 2 ⚠️ max",
+          "temperature_2__red_high": "Temp 2 🚨 max"
+        }
+      }
+    }
+  }
+}

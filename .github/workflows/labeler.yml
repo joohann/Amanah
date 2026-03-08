@@ -1,0 +1,22 @@
+name: Auto Label
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited]
+
+jobs:
+  label:
+    name: Labels toewijzen
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Labels toewijzen op basis van bestand
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml

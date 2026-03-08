@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.ruff_cache/
+.pylint.d/
+
+# Home Assistant
+*.db
+*.log
+home-assistant_v2.db
+
+# ESPHome
+.esphome/
+esphome/.esphome/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Release artefacts
+*.zip
+
+# Secrets — nooit committen!
+secrets.yaml

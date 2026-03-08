@@ -1,0 +1,24 @@
+integration:
+  - changed-files:
+      - any-glob-to-any-file: "custom_components/**"
+
+esphome:
+  - changed-files:
+      - any-glob-to-any-file: "esphome/**"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "README.md"
+          - "docs/**"
+          - "CHANGELOG.md"
+
+workflow:
+  - changed-files:
+      - any-glob-to-any-file: ".github/**"
+
+bug:
+  - head-branch: ["fix/*", "bug/*", "hotfix/*"]
+
+feature:
+  - head-branch: ["feat/*", "feature/*"]

@@ -1,0 +1,49 @@
+name: 💡 Feature verzoek
+description: Stel een nieuwe functie of verbetering voor
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bedankt voor je idee! Beschrijf hieronder wat je graag zou willen zien.
+
+  - type: textarea
+    id: probleem
+    attributes:
+      label: Welk probleem lost dit op?
+      description: Is je verzoek gerelateerd aan een probleem? Beschrijf het.
+      placeholder: "Het is frustrerend dat..."
+
+  - type: textarea
+    id: oplossing
+    attributes:
+      label: Gewenste oplossing
+      description: Beschrijf duidelijk wat je wilt.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: categorie
+    attributes:
+      label: Categorie
+      options:
+        - Display / ESPHome firmware
+        - HACS integratie / Home Assistant
+        - Nieuwe sensor ondersteuning
+        - Documentatie
+        - Anders
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatieven
+    attributes:
+      label: Alternatieven overwogen
+      description: Heb je andere oplossingen overwogen?
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra context
+      description: Screenshots, links, voorbeelden, etc.

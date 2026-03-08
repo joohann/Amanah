@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    name: Maak Release aan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Versie uitlezen uit manifest
+        id: version
+        run: |
+          VERSION=$(python3 -c "import json; print(json.load(open('custom_components/amanah/manifest.json'))['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Versie: $VERSION"
+
+      - name: Controleer tag = manifest versie
+        run: |
+          TAG="${{ github.ref_name }}"
+          MANIFEST="v${{ steps.version.outputs.version }}"
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "❌ Tag ($TAG) komt niet overeen met manifest versie ($MANIFEST)"
+            exit 1
+          fi
+          echo "✅ Versies komen overeen: $TAG"
+
+      - name: Changelog sectie extraheren
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          python3 - << 'EOF'
+          import re, os
+          with open("CHANGELOG.md") as f:
+              content = f.read()
+          pattern = rf"## \[{re.escape('${{ steps.version.outputs.version }}')}\].*?(?=\n## \[|\Z)"
+          match = re.search(
+              r"## \[" + re.escape(os.environ.get("VERSION", "")) + r"\].*?(?=\n## \[|\Z)",
+              content, re.DOTALL
+          )
+          notes = match.group(0).strip() if match else "Zie CHANGELOG.md voor wijzigingen."
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"notes<<EOF\n{notes}\nEOF\n")
+          EOF
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Zip aanmaken voor release
+        run: |
+          zip -r amanah-${{ steps.version.outputs.version }}.zip \
+            custom_components/amanah/ \
+            esphome/ \
+            hacs.json \
+            README.md \
+            CHANGELOG.md \
+            -x "*.pyc" -x "*/__pycache__/*"
+
+      - name: GitHub Release aanmaken
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Amanah v${{ steps.version.outputs.version }}"
+          body: ${{ steps.changelog.outputs.notes }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          files: |
+            amanah-${{ steps.version.outputs.version }}.zip

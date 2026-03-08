@@ -1,0 +1,251 @@
+# Amanah Aquarium Monitor — ESPHome display firmware
+# ideaspark ESP32 1.9" ST7789 (170x320)
+#
+# Importeren via ESPHome dashboard:
+#   Nieuw device → Import from URL → plak de GitHub URL van dit bestand
+#
+# Na import: vul WiFi credentials in en flash via USB (eerste keer)
+
+substitutions:
+  device_name: amanah-display
+  friendly_name: "Amanah Display"
+  mqtt_broker: "192.168.1.100"   # Aanpassen naar jouw MQTT broker IP
+  mqtt_base: "amanah"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  project:
+    name: "amanah.display"
+    version: "1.0.0"
+  on_boot:
+    priority: -100
+    then:
+      - light.turn_on:
+          id: backlight
+          brightness: 100%
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+
+ota:
+  - platform: esphome
+
+api:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Amanah Setup"
+    password: "amanah123"
+
+captive_portal:
+
+# ─── MQTT ────────────────────────────────────────────────
+mqtt:
+  broker: ${mqtt_broker}
+  port: 1883
+  client_id: "amanah_display"
+  on_message:
+    - topic: "${mqtt_base}/temperature_1"
+      then:
+        - lambda: |-
+            json::parse_json(x, [](JsonObject root) -> bool {
+              if (root.containsKey("value")) {
+                id(temp1_val) = root["value"].as<float>();
+              }
+              return true;
+            });
+    - topic: "${mqtt_base}/temperature_2"
+      then:
+        - lambda: |-
+            json::parse_json(x, [](JsonObject root) -> bool {
+              if (root.containsKey("value")) {
+                id(temp2_val) = root["value"].as<float>();
+              }
+              return true;
+            });
+    - topic: "${mqtt_base}/overall_status"
+      then:
+        - lambda: |-
+            id(overall_status_str) = x;
+
+# ─── Globale variabelen ──────────────────────────────────
+globals:
+  - id: current_page
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: temp1_val
+    type: float
+    restore_value: false
+    initial_value: "-99"
+  - id: temp2_val
+    type: float
+    restore_value: false
+    initial_value: "-99"
+  - id: overall_status_str
+    type: std::string
+    restore_value: false
+    initial_value: '"green"'
+
+# ─── SPI (ideaspark pinout) ──────────────────────────────
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+
+# ─── Display ST7789 170x320 ──────────────────────────────
+display:
+  - platform: ili9xxx
+    model: ST7789
+    cs_pin: GPIO15
+    dc_pin: GPIO2
+    reset_pin: GPIO4
+    dimensions:
+      width: 170
+      height: 320
+    invert_colors: true
+    update_interval: 1s
+    lambda: |-
+      auto BLACK  = Color(0, 0, 0);
+      auto WHITE  = Color(255, 255, 255);
+      auto GREEN  = Color(50, 205, 50);
+      auto ORANGE = Color(255, 165, 0);
+      auto RED    = Color(220, 50, 50);
+      auto CYAN   = Color(0, 200, 220);
+      auto GRAY   = Color(120, 120, 120);
+      auto DARKBG = Color(10, 15, 40);
+      auto HEADBG = Color(20, 30, 80);
+
+      int pages = 2;
+      it.fill(DARKBG);
+
+      // ── Header ──
+      it.filled_rectangle(0, 0, 170, 38, HEADBG);
+      it.print(10, 8, id(font_bold), WHITE, "AMANAH");
+      it.print(115, 12, id(font_small),
+        id(wifi_connected).state ? GREEN : RED,
+        id(wifi_connected).state ? "WiFi OK" : "No WiFi");
+
+      // Pagina puntjes
+      for (int i = 0; i < pages; i++) {
+        if (i == id(current_page))
+          it.filled_circle(75 + i * 14, 32, 3, CYAN);
+        else
+          it.circle(75 + i * 14, 32, 3, GRAY);
+      }
+
+      // ── Pagina 0: Temperatuur ──
+      if (id(current_page) == 0) {
+        it.print(10, 50, id(font_small), GRAY, "TEMPERATUUR 1");
+        Color c1 = GREEN;
+        if (id(temp1_val) == -99) {
+          it.print(10, 68, id(font_large), GRAY, "--.-");
+        } else {
+          if (id(temp1_val) < 23.0f || id(temp1_val) > 28.0f) c1 = ORANGE;
+          if (id(temp1_val) < 20.0f || id(temp1_val) > 30.0f) c1 = RED;
+          it.printf(10, 68, id(font_large), c1, "%.1f", id(temp1_val));
+          it.print(118, 80, id(font_small), GRAY, "\xB0""C");
+        }
+        it.line(10, 125, 160, 125, Color(40, 50, 90));
+        it.print(10, 135, id(font_small), GRAY, "TEMPERATUUR 2");
+        Color c2 = GREEN;
+        if (id(temp2_val) == -99) {
+          it.print(10, 153, id(font_large), GRAY, "--.-");
+        } else {
+          if (id(temp2_val) < 23.0f || id(temp2_val) > 28.0f) c2 = ORANGE;
+          if (id(temp2_val) < 20.0f || id(temp2_val) > 30.0f) c2 = RED;
+          it.printf(10, 153, id(font_large), c2, "%.1f", id(temp2_val));
+          it.print(118, 165, id(font_small), GRAY, "\xB0""C");
+        }
+        if (id(temp1_val) != -99 && id(temp2_val) != -99) {
+          float delta = id(temp1_val) - id(temp2_val);
+          it.print(10, 220, id(font_small), GRAY, "VERSCHIL");
+          it.printf(10, 236, id(font_medium), delta > 1.5f ? ORANGE : WHITE, "%+.1f\xB0""C", delta);
+        }
+
+      // ── Pagina 1: Status ──
+      } else if (id(current_page) == 1) {
+        it.print(10, 55, id(font_small), GRAY, "AMANAH STATUS");
+        Color sc = GREEN;
+        const char* sl = "ALLES OK";
+        if (id(overall_status_str) == "orange") { sc = ORANGE; sl = "WAARSCHUWING"; }
+        if (id(overall_status_str) == "red")    { sc = RED;    sl = "GEVAAR!"; }
+        it.filled_circle(85, 165, 60, sc);
+        it.circle(85, 165, 63, Color(sc.r / 2, sc.g / 2, sc.b / 2));
+        int txt_x = 85 - (strlen(sl) * 3);
+        it.print(txt_x, 240, id(font_small), sc, sl);
+        it.print(10, 285, id(font_small), GRAY, "MQTT:");
+        it.print(55, 285, id(font_small),
+          id(mqtt_connected).state ? GREEN : ORANGE,
+          id(mqtt_connected).state ? "verbonden" : "offline");
+      }
+
+      // ── Footer ──
+      it.line(0, 308, 170, 308, Color(30, 40, 80));
+      it.print(8, 312, id(font_small), Color(60, 60, 100), "v1.0.0  knop = volgende pagina");
+
+# ─── Fonts ───────────────────────────────────────────────
+font:
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 12
+  - file: "gfonts://Roboto Medium"
+    id: font_medium
+    size: 20
+  - file: "gfonts://Roboto Bold"
+    id: font_bold
+    size: 22
+  - file: "gfonts://Roboto Bold"
+    id: font_large
+    size: 48
+
+# ─── Backlight ───────────────────────────────────────────
+output:
+  - platform: ledc
+    pin: GPIO32
+    id: backlight_pwm
+
+light:
+  - platform: monochromatic
+    output: backlight_pwm
+    name: "Amanah Backlight"
+    id: backlight
+    restore_mode: ALWAYS_ON
+
+# ─── Knop (GPIO0 = ingebouwde BOOT knop) ─────────────────
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    name: "Amanah Pagina Knop"
+    id: page_button
+    filters:
+      - delayed_on: 50ms
+    on_press:
+      then:
+        - lambda: |-
+            id(current_page) = (id(current_page) + 1) % 2;
+
+  - platform: status
+    name: "Amanah WiFi"
+    id: wifi_connected
+
+  - platform: template
+    name: "Amanah MQTT"
+    id: mqtt_connected
+    lambda: |-
+      return id(mqtt_id_component).is_connected();
+
+# ─── MQTT component referentie ───────────────────────────
+# (zodat we connected-status kunnen uitlezen)
